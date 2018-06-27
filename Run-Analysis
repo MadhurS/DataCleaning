@@ -1,0 +1,68 @@
+library(reshape2)
+
+filename <- "getdata_dataset.zip"
+
+## Download and unzip the dataset:
+if (!file.exists(filename)){
+  fileURL <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip "
+  download.file(fileURL, filename, method="curl")
+}  
+if (!file.exists("UCI HAR Dataset")) { 
+  unzip(filename) 
+}
+
+setwd("C:/UCI HAR Dataset")
+
+#Load the datasets
+
+#Load Train
+xtrain <- read.table("train/X_train.txt")
+ytrain <- read.table("train/y_train.txt")
+subtrain <- read.table("train/subject_train.txt")
+
+#Load Test
+xtest <- read.table("test/X_test.txt")
+ytest <- read.table("test/y_test.txt")
+subtest <- read.table("test/subject_test.txt")
+
+
+#Read Features and ACtivity Labels
+feat <- read.table("features.txt")
+actLabels = read.table("activity_labels.txt")
+
+#Change Column Names
+colnames(xtrain) <- feat[,2]
+colnames(xtest) <- feat[,2]
+ 
+colnames(ytrain) <- "Activity ID"
+colnames(ytest) <- "Activity ID"
+ 
+ 
+colnames(subtrain) <- "Subject ID"
+colnames(subtest) <- "Subject ID"
+
+colnames(actLabels) <- c('Activity ID','Activity Type')
+
+
+#Merge columnwise and then rowwise
+mtrain <- cbind(ytrain,subtrain, xtrain)
+mtest <- cbind(ytest,subtest, xtest)
+main <- rbind(mtrain, mtest)
+
+#A subset is created to get a cleaned dataset
+colNames <- colnames(main)
+meanstd <- (grepl("Activity ID" , colNames) | 
++                      grepl("Subject ID" , colNames) | 
++                      grepl("Mean." , colNames) | 
++                      grepl("std." , colNames) 
++ )
+
+setmeanstd <- main[ , meanstd == TRUE]
+
+#Using meaingful names to name the activities in the data
+setactivityname <- merge(setmeanstd , actLabels, by = 'Activity ID', all.x=TRUE )
+MySet <- aggregate(. ~`Subject ID` + `Activity ID`, setactivityname, mean)
+
+# Tidy Set is created and written
+MySet <- MySet[order(MySet$`Subject ID`, MySet$`Activity ID`), ]
+write.table(MySet, "MyTidySet.txt", row.name= FALSE)
